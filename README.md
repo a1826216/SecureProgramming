@@ -14,11 +14,18 @@ Phapada Thanachotiwit
 Henry Winter
 
 ## Third-Party Libraries
-websocketpp (https://github.com/zaphoyd/websocketpp/tree/master)
+WebSocket++ (https://github.com/zaphoyd/websocketpp/tree/master)
 
 JSON (https://github.com/nlohmann/json)
 
-OpenSSL
+OpenSSL (https://github.com/openssl/openssl)
 
 ## Setup Instructions
-To be done
+Install libraries (for Ubuntu/WSL):
+
+```
+sudo apt update
+sudo apt install nlohman-json3-dev 
+sudo apt install libwebsocketpp-dev
+```
+
