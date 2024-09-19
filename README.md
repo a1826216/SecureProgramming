@@ -13,5 +13,10 @@ Phapada Thanachotiwit
 
 Henry Winter
 
+## Third-Party Libraries
+websocketpp (https://github.com/zaphoyd/websocketpp/tree/master)
+JSON (https://github.com/nlohmann/json)
+OpenSSL
+
 ## Setup Instructions
 To be done
