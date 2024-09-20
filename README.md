@@ -25,7 +25,8 @@ Install libraries (for Ubuntu/WSL):
 
 ```
 sudo apt update
-sudo apt install nlohman-json3-dev 
+sudo apt install nlohmann-json3-dev 
 sudo apt install libwebsocketpp-dev
 ```
 
+OpenSSL should already be installed on most systems.
