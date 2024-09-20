@@ -1,15 +1,22 @@
 import asyncio
 import json
+import ssl
+
 from websockets.asyncio.server import serve
 
+# Server class
+class Server:
+    def __init__(self):
+        self.host = "localhost"
+        self.port = 8765
+        self.uri = "ws://localhost:8765"
 
-async def echo(websocket):
-    async for message in websocket:
-        print(message)
-        await websocket.send(message)
+    # Run server
+    async def main():
+        pass
 
-async def main():
-    async with serve(echo, "localhost", 8765):
-        await asyncio.get_running_loop().create_future()  # run forever
 
-asyncio.run(main())
+# Run server
+if __name__ == "__main__":
+    server = Server()
+    print("main function!")

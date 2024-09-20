@@ -21,7 +21,7 @@ JSON (https://github.com/nlohmann/json)
 OpenSSL (https://github.com/openssl/openssl)
 
 ## Setup Instructions
-Install libraries (for Ubuntu/WSL):
+Install C++ libraries (for Ubuntu/WSL):
 
 ```
 sudo apt update
@@ -30,3 +30,27 @@ sudo apt install libwebsocketpp-dev
 ```
 
 OpenSSL should already be installed on most systems.
+
+For the server, the websockets library for Python can be installed using pip.
+
+```
+pip install websockets
+```
+
+## Setup Instructions
+As the server is a Python file, no compilation is necessary, and it can be started directly.
+
+```
+cd server
+python3 server.py
+```
+
+To build and run the client, run the following commands:
+
+```
+cd client
+make
+./client
+```
+
+(this section is very incomplete)
