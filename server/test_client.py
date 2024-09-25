@@ -1,3 +1,6 @@
+# Debug client for testing the server
+# Real client will have additional features included
+
 import asyncio
 from websockets.sync.client import connect
 
@@ -10,3 +13,11 @@ def hello():
             print(f"Received: {message}")
 
 hello()
+
+
+# msg = {
+#     "type": "signed_data",
+#     "data": {  },
+#     "counter": 12345,
+#     "signature": "<Base64 signature of data + counter>"
+# }

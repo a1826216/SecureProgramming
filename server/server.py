@@ -15,15 +15,31 @@ class Server:
         # Store connected clients
         self.clients = {}
 
-        # List of servers in the neighbourhood
+        # List of servers in the neighbourhood (hard coded for now, can probably be passed in as a text file)
         self.neighbourhood_servers = [self.uri]
 
-    # Run server
-    async def run():
+        # List of clients in the neighbourhood (outside this server)
+        self.neighbourhood_clients = {}
+
+    # Check if a message is a valid OLAF Neighbourhood protocol message
+    def check_msg_is_valid(self, message):
         pass
 
+    async def echo(self, websocket):
+        async for message in websocket:
+            print(message)
+            await websocket.send(message)
 
-# Run server
+    # Run server
+    async def run(self):
+        async with serve(self.echo, self.host, self.port):
+            print("echo server started on: ", self.uri)
+            await asyncio.get_running_loop().create_future()
+
+
 if __name__ == "__main__":
     server = Server("localhost",8765)
-    print("server uri: ", server.uri)
+    asyncio.run(server.run())
+
+
+    
