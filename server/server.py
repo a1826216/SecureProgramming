@@ -23,8 +23,10 @@ class Server:
 
     # Check if a message is a valid OLAF Neighbourhood protocol message
     def check_msg_is_valid(self, message):
-        pass
-
+        # Check if a message has the required JSON headers
+        return False
+    
+    # Echo message back to client (for testing)
     async def echo(self, websocket):
         async for message in websocket:
             print(message)
@@ -38,6 +40,7 @@ class Server:
 
 
 if __name__ == "__main__":
+    # Run server with specified hostname and port
     server = Server("localhost",8765)
     asyncio.run(server.run())
 
