@@ -13,8 +13,11 @@ class Server:
         self.port = port
         self.uri = f'ws://{self.host}:{self.port}'
 
-        # Store connected clients
-        self.clients = {}
+        # Store connected clients (to this server)
+        self.client_list = {
+            "address": self.uri, 
+            "clients": []
+        }
 
         # List of servers in the neighbourhood (hard coded for now, can probably be passed in as a text file)
         self.neighbourhood_servers = [self.uri]
@@ -44,7 +47,7 @@ class Server:
             
         return True
     
-    # Handle new client hellow message
+    # Handle new client hello message
     async def handle_hello(self, websocket, message):
         # Username code (commented out for now)
         # username = message['data']['username']
@@ -71,6 +74,9 @@ class Server:
         # Respond to the client to confirm receipt of the 'hello'
         await websocket.send(json.dumps({"status": "hello received"}))
 
+    # Handle client list request
+    async def handle_client_list_request(self, websocket):
+        await websocket.send("Client list request not implemented yet")
     
     # Echo message back to client (for testing)
     async def echo(self, websocket):
@@ -110,7 +116,7 @@ class Server:
 
                 # Handle client list request
                 elif message_type == "client_list_request":
-                    await websocket.send("Message type is client list request!")
+                    await self.handle_client_list_request(websocket)
 
                 # Handle error
                 else:
