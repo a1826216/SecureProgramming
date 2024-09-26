@@ -14,10 +14,10 @@ class Server:
         self.uri = f'ws://{self.host}:{self.port}'
 
         # Store connected clients (to this server)
-        self.client_list = {
-            "address": self.uri, 
-            "clients": []
-        }
+        self.clients = {}
+
+        # Client list (For client list request)
+        self.client_list = {"address": self.uri, "clients": []}
 
         # List of servers in the neighbourhood (hard coded for now, can probably be passed in as a text file)
         self.neighbourhood_servers = [self.uri]
@@ -71,12 +71,28 @@ class Server:
             'counter': counter         # Store most recent counter value (used to prevent replay attacks)
         }
 
+        # Append public key to client list
+        self.client_list["clients"].append(public_key)
+        print(self.client_list)
+
         # Respond to the client to confirm receipt of the 'hello'
         await websocket.send(json.dumps({"status": "hello received"}))
 
     # Handle client list request
     async def handle_client_list_request(self, websocket):
-        await websocket.send("Client list request not implemented yet")
+        # Basic request body
+        client_list_req = {
+            "type": "client_list",
+            "servers": []
+        }
+
+        # Append our server client list to the request
+        client_list_req["servers"].append(self.client_list)
+
+        # Get lists from other servers (needs server-server communication first)
+
+        # Send request back to client
+        await websocket.send(json.dumps(client_list_req))
     
     # Echo message back to client (for testing)
     async def echo(self, websocket):
