@@ -44,6 +44,34 @@ class Server:
             
         return True
     
+    # Handle new client hellow message
+    async def handle_hello(self, websocket, message):
+        # Username code (commented out for now)
+        # username = message['data']['username']
+        # if username in connected_clients:
+        #     print(f"username taken")
+        #     await websocket.send(json.dumps({"status": "error", "message": "Username already taken"}))
+        #     return
+        
+        # Get public key from message
+        public_key = message["data"]["public_key"]
+        client_id = base64.b64encode(public_key.encode()).decode()  # Generate a unique client ID based on the public key
+
+        # Get counter value from message
+        counter = message["counter"]
+
+        # Add the client to the connected_clients dictionary
+        self.clients[client_id] = {
+            # 'username': username,
+            'public_key': public_key,  # Store the client's public key
+            'websocket': websocket,    # Store the WebSocket object for communication
+            'counter': counter         # Store most recent counter value (used to prevent replay attacks)
+        }
+
+        # Respond to the client to confirm receipt of the 'hello'
+        await websocket.send(json.dumps({"status": "hello received"}))
+
+    
     # Echo message back to client (for testing)
     async def echo(self, websocket):
         async for message in websocket:
@@ -72,7 +100,13 @@ class Server:
                         await websocket.send(json.dumps({"status": "error", "message": "Invalid message"}))
                     else:
                         # Check type of signed message and handle accordingly
-                        await websocket.send("Signed data message is valid!")
+                        data_type = data["data"]["type"]
+                        if data_type == "hello":
+                            await self.handle_hello(websocket, data)
+                        elif data_type == "public_chat":
+                            print("Data type is public chat!")
+                        elif data_type == "chat":
+                            print("Data type is chat!")
 
                 # Handle client list request
                 elif message_type == "client_list_request":
