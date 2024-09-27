@@ -49,6 +49,10 @@ class Server:
     
     # Handle new client hello message
     async def handle_hello(self, websocket, message):
+        # Handle situation where client already exists
+
+        
+        
         # Username code (commented out for now)
         # username = message['data']['username']
         # if username in connected_clients:
@@ -142,6 +146,7 @@ class Server:
             print(f"Connection closed from: {websocket.remote_address}")
 
         finally:
+            # Remove client from list here?
             print(f"Cleaning up connection for {websocket.remote_address}")
 
     # Run server

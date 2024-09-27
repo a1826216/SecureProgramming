@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+import base64
 from websockets.sync.client import connect
 
 # Key pair (hardcoded for now)
@@ -17,7 +18,7 @@ server_hello = {
         "public_key": rsa_public_key
     },
     "counter": 1,
-    "signature": "<Base64 signature of data + counter>"
+    "signature": "e3R5cGU6IGhlbGxvLHB1YmxpY19rZXk6IHJzYV9wdWJsaWNfa2V5fTEK"
 }
 
 client_list_request = {
