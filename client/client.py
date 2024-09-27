@@ -37,7 +37,7 @@ class Client:
         hash = SHA256.new(data_c)
 
         # Sign signature with RSA private key
-        signature = pss.new(self.key_pair).sign(hash)
+        signature = pss.new(self.key_pair, salt_bytes=32).sign(hash)
 
         # Base64 encode the signature
         signature = base64.b64encode(signature)
