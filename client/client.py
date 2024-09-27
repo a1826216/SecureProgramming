@@ -38,6 +38,9 @@ class Client:
 
         # Sign signature with RSA private key
         signature = pss.new(self.key_pair).sign(hash)
+
+        # Base64 encode the signature
+        signature = base64.b64encode(signature)
         
         signed_data = {
             "type": "signed_data",
