@@ -31,10 +31,11 @@ sudo apt install libwebsocketpp-dev
 
 OpenSSL should already be installed on most systems.
 
-For the server, the websockets library for Python can be installed using pip.
+Python libraries can be installed using pip:
 
 ```
 pip install websockets
+pip install pycryptodome
 ```
 
 ## Running the Client and Server
