@@ -32,7 +32,7 @@ class Client:
         signature = hashlib.sha256(signature).hexdigest()
 
         # Base64 encode SHA256 sum of signature
-        signature = base64.b64encode(bytes(signature,'utf-8'))
+        signature = base64.b64encode(bytes(signature, 'utf-8'))
         
         signed_data = {
             "type": "signed_data",
@@ -41,20 +41,61 @@ class Client:
             "signature": str(signature)
         }
 
+        # Increment counter value (for future signed data messages)
+        self.counter += 1
+
         return json.dumps(signed_data)
     
+    async def send_hello(self, websocket):
+        # Generate hello message
+        data = {
+            "type": "hello", 
+            "public_key": str(self.public_key)
+        }
+        
+        hello_msg = self.generate_signed_data(data)
+
+        # Send hello message
+        await websocket.send(hello_msg)
+
+        response = await websocket.recv()
+        print(f"Received: ", response)
+
+    async def send_public_chat(self, websocket, message):
+        # Get fingerprint of sender
+        fingerprint = ""
+
+        data = {
+            "type": "public_chat",
+            "sender": fingerprint,
+            "message": message
+        }
+
+        public_chat_msg = self.generate_signed_data(data)
+
+        await websocket.send(public_chat_msg)
+
+    # Send client list request
+    async def client_list_request(self, websocket):
+        message = {"type": "client_list_request"}
+
+        await websocket.send(json.dumps(message))
+
+        response = await websocket.recv()
+        print(f"Received: ", response)
+
+
 
 
     # Run the client
-    def run(self):
-        pass
+    async def run(self):
+        async with websockets.connect(self.uri) as websocket:
+            await self.send_hello(websocket)
+            await self.client_list_request(websocket)
 
 
 if __name__ == "__main__":
     client = Client("ws://localhost:8765")
 
-    test_data = {"type": "test_data"}
-
     # Testing signed data
-    signed_data = client.generate_signed_data(test_data)
-    print(signed_data)
+    asyncio.run(client.run())
