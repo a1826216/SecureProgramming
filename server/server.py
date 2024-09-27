@@ -1,9 +1,12 @@
 import asyncio
+import websockets
 import json
 import base64
 import hashlib
 
-import websockets
+from Crypto.Signature import pss
+from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
 
 # Server class
 class Server:
@@ -49,8 +52,24 @@ class Server:
     
     # Handler for all types of signed data messages
     async def handle_signed_data(self, websocket, message):
+        # Check if websocket is already connected (might need to write a helper)
 
-        pass
+        # Check message has the valid headers first
+        if self.check_msg_is_valid(message) == False:
+            await websocket.send(json.dumps({"status": "invaid message"}))
+            return
+        
+        # Validate signature (get the client's RSA key?)
+
+        # Handle different message types
+        data_type = message["data"]["type"]
+        if data_type == "hello":
+            await self.handle_hello(websocket, message)
+        elif data_type == "public_chat":
+            print("Data type is public chat!")
+        elif data_type == "chat":
+            print("Data type is chat!")
+
 
     
     # Handle new client hello message
@@ -76,6 +95,14 @@ class Server:
 
         # Respond to the client to confirm receipt of the 'hello'
         await websocket.send(json.dumps({"status": "hello received"}))
+
+    # Handle public chat (broadcast to clients in all neighbourhoods)
+    async def handle_public_chat(self, websocket, message):
+        pass
+
+    # Handle private chat (route to individual recipients)
+    async def handle_chat(self, websocket, message):
+        pass
 
     # Handle client list request
     async def handle_client_list_request(self, websocket):
@@ -116,18 +143,7 @@ class Server:
 
                 # Handle signed data message
                 if message_type == "signed_data":
-                    # Check validity of signed message
-                    if self.check_msg_is_valid(data) == False:
-                        await websocket.send(json.dumps({"status": "error", "message": "Invalid message"}))
-                    else:
-                        # Check type of signed message and handle accordingly
-                        data_type = data["data"]["type"]
-                        if data_type == "hello":
-                            await self.handle_hello(websocket, data)
-                        elif data_type == "public_chat":
-                            print("Data type is public chat!")
-                        elif data_type == "chat":
-                            print("Data type is chat!")
+                    await self.handle_signed_data(websocket, data)
 
                 # Handle client list request
                 elif message_type == "client_list_request":
