@@ -31,8 +31,7 @@ class Client:
         # Get SHA256 sum of signature
         signature = hashlib.sha256(signature).hexdigest()
 
-        # Base64 encode SHA256 sum of signature
-        signature = base64.b64encode(bytes(signature, 'utf-8'))
+        # Sign signature with RSA private key
         
         signed_data = {
             "type": "signed_data",
@@ -52,7 +51,7 @@ class Client:
             "type": "hello", 
             "public_key": str(self.public_key)
         }
-        
+
         hello_msg = self.generate_signed_data(data)
 
         # Send hello message

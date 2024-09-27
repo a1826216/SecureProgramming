@@ -1,7 +1,7 @@
 import asyncio
 import json
 import base64
-import ssl
+import hashlib
 
 import websockets
 
@@ -47,19 +47,14 @@ class Server:
             
         return True
     
+    # Handler for all types of signed data messages
+    async def handle_signed_data(self, websocket, message):
+
+        pass
+
+    
     # Handle new client hello message
     async def handle_hello(self, websocket, message):
-        # Handle situation where client already exists
-
-        
-        
-        # Username code (commented out for now)
-        # username = message['data']['username']
-        # if username in connected_clients:
-        #     print(f"username taken")
-        #     await websocket.send(json.dumps({"status": "error", "message": "Username already taken"}))
-        #     return
-        
         # Get public key from message
         public_key = message["data"]["public_key"]
         client_id = base64.b64encode(public_key.encode()).decode()  # Generate a unique client ID based on the public key

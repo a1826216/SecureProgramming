@@ -3,10 +3,6 @@ import websockets
 import json
 import base64
 from Crypto.PublicKey import RSA
-from Crypto.Signature import pss
-from Crypto.Hash import SHA256
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
 
 # To store connected clients
 connected_clients = {}
@@ -20,17 +16,24 @@ async def broadcast(message):
 
 # Handle client hello messages
 async def handle_hello(websocket, message):
-    public_key = message['data']['public_key']
-    client_id = base64.b64encode(public_key.encode()).decode()  # Mock client ID based on the public key
-    
-    print(f"Received 'hello' from client: {client_id}")
-    
+    username = message['data']['username']
+    if username in connected_clients:
+        print(f"username taken")
+        await websocket.send(json.dumps({"status": "error", "message": "Username already taken"}))
+        return
+    public_key = message['data']['public_key']  # Extract the public key from the message
+    client_id = base64.b64encode(public_key.encode()).decode()  # Generate a unique client ID based on the public key
+
+    print(f"Received 'hello' from client: {username}")
+
+    # Add the client to the connected_clients dictionary
     connected_clients[client_id] = {
-        'public_key': public_key,
-        'websocket': websocket
+        'username': username,
+        'public_key': public_key,  # Store the client's public key
+        'websocket': websocket      # Store the WebSocket object for communication
     }
 
-    # Respond to the client
+    # Respond to the client to confirm receipt of the 'hello'
     await websocket.send(json.dumps({"status": "hello received"}))
 
 # Handle client list request
@@ -38,16 +41,15 @@ async def handle_client_list_request(websocket):
     print("Received 'client_list_request' from client")
     
     client_list = []
-    for addr, clients in connected_clients.items():
+    for client_id, client in connected_clients.items():
         client_info = {
-            'address': addr,
-            'clients': [{'client-id': client_id, 'public-key': client['public_key']} for client_id, client in clients.items()]
+            'username': client['username'],
+
         }
         client_list.append(client_info)
 
     response = {
-        "type": "client_list",
-        "servers": client_list
+        "clients": client_list
     }
 
     await websocket.send(json.dumps(response))
@@ -60,13 +62,14 @@ async def handle_connection(websocket, path):
         async for message in websocket:
             print(f"Received message: {message}")
             data = json.loads(message)
-            
-            if data['data']['type'] == 'hello':
-                await handle_hello(websocket, data)
-            elif data['type'] == 'client_list_request':
+
+            # Check if "type" is directly in the message (e.g., for "client_list_request")
+            if "type" in data and data['type'] == 'client_list_request':
                 await handle_client_list_request(websocket)
+            elif "data" in data and data['data']['type'] == 'hello':
+                await handle_hello(websocket, data)
             else:
-                print(f"Unknown message type received: {data['type']}")
+                print(f"Unknown message type received: {data}")
 
     except websockets.ConnectionClosed:
         print(f"Connection closed from: {websocket.remote_address}")
