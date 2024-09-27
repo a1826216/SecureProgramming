@@ -4,7 +4,9 @@ import json
 import base64
 import hashlib
 
+from Crypto.Signature import pss
 from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
 
 class Client:
     def __init__(self, uri):
@@ -20,18 +22,22 @@ class Client:
         # Exported PEM of public key
         self.public_key = self.key_pair.public_key().export_key()
 
+        # Exported PEM of private key
+        self.private_key = self.key_pair.export_key()
+
         # List of all clients on all servers
         self.client_list = {}
 
     # Helper function to generate signed data messages
     def generate_signed_data(self, data:dict):
-        # Base64 signature of data + counter
-        signature = bytes(json.dumps(data)+str(self.counter), 'utf-8')
+        # Concatenate data and counter (this will form the signature)
+        data_c = bytes(json.dumps(data)+str(self.counter), 'utf-8')
         
-        # Get SHA256 sum of signature
-        signature = hashlib.sha256(signature).hexdigest()
+        # Get SHA256 sum of data and counter
+        hash = SHA256.new(data_c)
 
         # Sign signature with RSA private key
+        signature = pss.new(self.key_pair).sign(hash)
         
         signed_data = {
             "type": "signed_data",
