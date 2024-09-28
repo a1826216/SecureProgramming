@@ -53,12 +53,13 @@ class Client:
         self.counter += 1
 
         return json.dumps(signed_data)
+
     
     async def send_hello(self, websocket):
         # Generate hello message
         data = {
             "type": "hello", 
-            "public_key": str(self.public_key)
+            "public_key": self.public_key.decode('utf-8')
         }
 
         hello_msg = self.generate_signed_data(data)
@@ -71,7 +72,7 @@ class Client:
 
     async def send_public_chat(self, websocket, message):
         # Get fingerprint of sender
-        fingerprint = ""
+        fingerprint = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
 
         data = {
             "type": "public_chat",
@@ -98,13 +99,22 @@ class Client:
 
     # Run the client
     async def run(self):
+        pass
+    
+    # Basic tests for client functionality
+    async def tests(self):
         async with websockets.connect(self.uri) as websocket:
             await self.send_hello(websocket)
             await self.client_list_request(websocket)
 
+            # Send a duplicate hello
+            await self.send_hello(websocket)
+
+            # Send a public chat
+            await self.send_public_chat(websocket, "public chat!")
 
 if __name__ == "__main__":
     client = Client("ws://localhost:8765")
 
     # Testing signed data
-    asyncio.run(client.run())
+    asyncio.run(client.tests())

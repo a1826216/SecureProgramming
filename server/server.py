@@ -58,14 +58,9 @@ class Server:
     async def handle_signed_data(self, websocket, message):
         # Check message has the valid headers first
         if self.check_json_headers(message) == False:
-            await websocket.send(json.dumps({"status": "Invalid signed data message"}))
+            await websocket.send(json.dumps({"status": "error", "message": "Invalid signed data message"}))
             return
         
-        # Check if websocket already exists (this will determine if a hello can be sent)
-
-        
-        # Validate signature (get the client's RSA key? only possible if it already exists)
-
         # Handle different message types
         data_type = message["data"]["type"]
         if data_type == "hello":
@@ -80,9 +75,15 @@ class Server:
     async def handle_hello(self, websocket, message):
         # Get public key from message
         public_key = message["data"]["public_key"]
+
+        # Validate signature using new public key
         
         # Generate unique client ID (SHA256 of base64 encoded RSA public key)
         client_id = self.get_client_id(public_key)
+
+        # Check if client ID is a duplicate
+        if client_id in self.clients:
+            await websocket.send(json.dumps({"status": "error", "message": "Client ID already exists"}))
 
         # Get counter value from message
         counter = message["counter"]
@@ -99,11 +100,11 @@ class Server:
         self.client_list["clients"].append(public_key)
 
         # Respond to the client to confirm receipt of the 'hello'
-        await websocket.send(json.dumps({"client_id": str(client_id)}))
+        await websocket.send(json.dumps({"status": "success", "message": "Hello successfully received", "client_id": str(client_id)}))
 
     # Handle public chat (broadcast to clients in all neighbourhoods)
     async def handle_public_chat(self, websocket, message):
-        pass
+        await websocket.send(message)
 
     # Handle private chat (route to individual recipients)
     async def handle_chat(self, websocket, message):
