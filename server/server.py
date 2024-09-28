@@ -29,7 +29,7 @@ class Server:
         self.neighbourhood_clients = {}
 
     # Check if a message is a valid OLAF Neighbourhood protocol message
-    def check_msg_is_valid(self, message:dict):
+    def check_json_headers(self, message:dict):
         # List of valid keys for messages sent by client
         valid_keys = ["type","data","counter","signature"]
 
@@ -50,16 +50,21 @@ class Server:
             
         return True
     
+    # Helper function to return a client ID
+    def get_client_id(self, public_key):
+        return SHA256.new(base64.b64encode(bytes(public_key, 'utf-8'))).hexdigest()
+    
     # Handler for all types of signed data messages
     async def handle_signed_data(self, websocket, message):
-        # Check if websocket is already connected (might need to write a helper)
-
         # Check message has the valid headers first
-        if self.check_msg_is_valid(message) == False:
-            await websocket.send(json.dumps({"status": "invaid message"}))
+        if self.check_json_headers(message) == False:
+            await websocket.send(json.dumps({"status": "Invalid signed data message"}))
             return
         
-        # Validate signature (get the client's RSA key?)
+        # Check if websocket already exists (this will determine if a hello can be sent)
+
+        
+        # Validate signature (get the client's RSA key? only possible if it already exists)
 
         # Handle different message types
         data_type = message["data"]["type"]
@@ -70,31 +75,31 @@ class Server:
         elif data_type == "chat":
             print("Data type is chat!")
 
-
     
     # Handle new client hello message
     async def handle_hello(self, websocket, message):
         # Get public key from message
         public_key = message["data"]["public_key"]
-        client_id = base64.b64encode(public_key.encode()).decode()  # Generate a unique client ID based on the public key
+        
+        # Generate unique client ID (SHA256 of base64 encoded RSA public key)
+        client_id = self.get_client_id(public_key)
 
         # Get counter value from message
         counter = message["counter"]
 
         # Add the client to the connected_clients dictionary
         self.clients[client_id] = {
-            # 'username': username,
+            'fingerprint': client_id,  # Client ID is also the fingerprint (stored for easier access)
             'public_key': public_key,  # Store the client's public key
             'websocket': websocket,    # Store the WebSocket object for communication
             'counter': counter         # Store most recent counter value (used to prevent replay attacks)
         }
 
-        # Append public key to client list
+        # Append raw public key to client list
         self.client_list["clients"].append(public_key)
-        print(self.client_list)
 
         # Respond to the client to confirm receipt of the 'hello'
-        await websocket.send(json.dumps({"status": "hello received"}))
+        await websocket.send(json.dumps({"client_id": str(client_id)}))
 
     # Handle public chat (broadcast to clients in all neighbourhoods)
     async def handle_public_chat(self, websocket, message):
@@ -119,15 +124,11 @@ class Server:
 
         # Send request back to client
         await websocket.send(json.dumps(client_list_req))
-    
-    # Echo message back to client (for testing)
-    async def echo(self, websocket):
-        async for message in websocket:
-            print(message)
-            # print(json.loads(message).keys())
-            print(self.check_msg_is_valid(json.loads(message)))
-            await websocket.send(message)
 
+
+    # Handle when a client disconnects
+    async def handle_disconnection(self, websocket):
+        pass
 
     # Handle WebSocket connection
     async def handle_connection(self, websocket, path):

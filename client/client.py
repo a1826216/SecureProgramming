@@ -46,7 +46,7 @@ class Client:
             "type": "signed_data",
             "data": data,
             "counter": self.counter,
-            "signature": str(signature)
+            "signature": bytes.decode(signature)
         }
 
         # Increment counter value (for future signed data messages)
@@ -83,6 +83,10 @@ class Client:
 
         await websocket.send(public_chat_msg)
 
+    async def send_chat(self, websocket, message):
+        pass
+
+
     # Send client list request
     async def client_list_request(self, websocket):
         message = {"type": "client_list_request"}
@@ -91,9 +95,6 @@ class Client:
 
         response = await websocket.recv()
         print(f"Received: ", response)
-
-
-
 
     # Run the client
     async def run(self):
