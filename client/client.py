@@ -100,7 +100,31 @@ class Client:
 
     # Run the client
     async def run(self):
-        pass
+        async with websockets.connect(self.uri) as websocket:
+            print("Starting OLAF Neighbourhood client...")
+
+            # Send hello message
+            print(f"Connecting to server at {self.uri}...")
+            await self.send_hello(websocket)
+
+            # Main loop
+            while (1):
+                prompt = input("> ")
+
+                match prompt:
+                    case "public":
+                        message = input("Enter a message: ")
+                        await self.send_public_chat(websocket, message)
+                    case "chat":
+                        print("not implemented yet!")
+                    case "list":
+                        await self.client_list_request(websocket)
+                    case "close":
+                        print("Closing connection to server...")
+                        await websocket.close()
+                        return
+                
+
     
     # Basic tests for client functionality
     async def tests(self):
@@ -124,4 +148,4 @@ if __name__ == "__main__":
     client = Client("ws://localhost:8765")
 
     # Testing signed data
-    asyncio.run(client.tests())
+    asyncio.run(client.run())
