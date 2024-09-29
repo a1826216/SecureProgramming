@@ -88,7 +88,7 @@ class Server:
                 await websocket.send(json.dumps({"status": "error", "message": "Hello message not sent yet"}))
         else:
             if data_type == "public_chat":
-                print("Data type is public chat!")
+                await self.handle_public_chat(websocket, message)
             elif data_type == "chat":
                 print("Data type is chat!")
             else:
@@ -129,7 +129,9 @@ class Server:
 
     # Handle public chat (broadcast to clients in all neighbourhoods)
     async def handle_public_chat(self, websocket, message):
-        await websocket.send(message)
+        for client in self.clients:
+            if self.clients[client]["websocket"] != websocket:
+                await websocket.send(json.dumps(message))
 
     # Handle private chat (route to individual recipients)
     async def handle_chat(self, websocket, message):

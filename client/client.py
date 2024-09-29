@@ -106,25 +106,24 @@ class Client:
             # Send hello message
             print(f"Connecting to server at {self.uri}...")
             await self.send_hello(websocket)
+                    
+    async def input(self, websocket):
+        # Main loop
+        while (1):
+            prompt = input("> ")
 
-            # Main loop
-            while (1):
-                prompt = input("> ")
-
-                match prompt:
-                    case "public":
-                        message = input("Enter a message: ")
-                        await self.send_public_chat(websocket, message)
-                    case "chat":
-                        print("not implemented yet!")
-                    case "list":
-                        await self.client_list_request(websocket)
-                    case "close":
-                        print("Closing connection to server...")
-                        await websocket.close()
-                        return
-                
-
+            match prompt:
+                case "public":
+                    message = input("Enter a message: ")
+                    await self.send_public_chat(websocket, message)
+                case "chat":
+                    print("not implemented yet!")
+                case "list":
+                    await self.client_list_request(websocket)
+                case "close":
+                    print("Closing connection to server...")
+                    await websocket.close()
+                    return
     
     # Basic tests for client functionality
     async def tests(self):
@@ -148,4 +147,4 @@ if __name__ == "__main__":
     client = Client("ws://localhost:8765")
 
     # Testing signed data
-    asyncio.run(client.run())
+    asyncio.run(client.tests())
