@@ -90,10 +90,11 @@ class Client:
 
     # Send client list request
     async def client_list_request(self, websocket):
+        # Send message
         message = {"type": "client_list_request"}
-
         await websocket.send(json.dumps(message))
 
+        # Wait for response
         response = await websocket.recv()
         print(f"Received: ", response)
 
@@ -104,6 +105,9 @@ class Client:
     # Basic tests for client functionality
     async def tests(self):
         async with websockets.connect(self.uri) as websocket:
+            # Try to send a public chat before hello is sent
+            await self.send_public_chat(websocket, "public chat!")
+            
             await self.send_hello(websocket)
             await self.client_list_request(websocket)
 

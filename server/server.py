@@ -54,6 +54,23 @@ class Server:
     def get_client_id(self, public_key):
         return SHA256.new(base64.b64encode(bytes(public_key, 'utf-8'))).hexdigest()
     
+    # Check if a user has an active websocket connection
+    def check_connection(self, websocket):
+        # Check if websocket belongs to server
+        for client in self.clients:
+            if self.clients[client]["websocket"] == websocket:
+                print (f"Client {client} is connected!")
+                return True
+            
+        # Check neighbourhood websockets (when server-server is added)
+            
+        print("Client is not connected!")
+        return False
+    
+    # Send hello message to other servers
+    async def send_server_hello(self, websocket):
+        server_ip = f"{self.host}:{self.port}"
+    
     # Handler for all types of signed data messages
     async def handle_signed_data(self, websocket, message):
         # Check message has the valid headers first
@@ -61,14 +78,21 @@ class Server:
             await websocket.send(json.dumps({"status": "error", "message": "Invalid signed data message"}))
             return
         
-        # Handle different message types
         data_type = message["data"]["type"]
-        if data_type == "hello":
-            await self.handle_hello(websocket, message)
-        elif data_type == "public_chat":
-            print("Data type is public chat!")
-        elif data_type == "chat":
-            print("Data type is chat!")
+
+        # Check active websocket status
+        if self.check_connection(websocket) == False:
+            if data_type == "hello":
+                await self.handle_hello(websocket, message)
+            else:
+                await websocket.send(json.dumps({"status": "error", "message": "Hello message not sent yet"}))
+        else:
+            if data_type == "public_chat":
+                print("Data type is public chat!")
+            elif data_type == "chat":
+                print("Data type is chat!")
+            else:
+                await websocket.send(json.dumps({"status": "error", "message": "Invalid message type for connected client"}))
 
     
     # Handle new client hello message
@@ -84,6 +108,7 @@ class Server:
         # Check if client ID is a duplicate
         if client_id in self.clients:
             await websocket.send(json.dumps({"status": "error", "message": "Client ID already exists"}))
+            return
 
         # Get counter value from message
         counter = message["counter"]
@@ -150,6 +175,18 @@ class Server:
                 # Handle client list request
                 elif message_type == "client_list_request":
                     await self.handle_client_list_request(websocket)
+
+                # Handle server hello
+                elif message_type == "server_hello":
+                    print("message is server_hello")
+
+                # Handle server client update request
+                elif message_type == "client_update_request":
+                    print("message is client update request")
+
+                # Handle server client update
+                elif message_type == "client_update":
+                    print("message is client update")
 
                 # Handle error
                 else:
