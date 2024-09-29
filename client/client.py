@@ -117,6 +117,9 @@ class Client:
             # Send a public chat
             await self.send_public_chat(websocket, "public chat!")
 
+            # await websocket.close()
+            return
+
 if __name__ == "__main__":
     client = Client("ws://localhost:8765")
 

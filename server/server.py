@@ -59,12 +59,12 @@ class Server:
         # Check if websocket belongs to server
         for client in self.clients:
             if self.clients[client]["websocket"] == websocket:
-                print (f"Client {client} is connected!")
+                # print (f"Client {client} is connected!")
                 return True
             
         # Check neighbourhood websockets (when server-server is added)
             
-        print("Client is not connected!")
+        # print("Client is not connected!")
         return False
     
     # Send hello message to other servers
@@ -154,7 +154,17 @@ class Server:
 
     # Handle when a client disconnects
     async def handle_disconnection(self, websocket):
-        pass
+        public_key = ""
+        
+        # Remove from local client list
+        for client in self.clients:
+            if self.clients[client]["websocket"] == websocket:
+                public_key = self.clients[client]["public_key"]
+                del self.clients[client]
+                break
+
+        if public_key in self.client_list["clients"]:
+            self.client_list["clients"].remove(public_key)
 
     # Handle WebSocket connection
     async def handle_connection(self, websocket, path):
@@ -194,10 +204,15 @@ class Server:
 
         except websockets.ConnectionClosed:
             print(f"Connection closed from: {websocket.remote_address}")
+            # Remove client from list upon disconnection
+            if self.check_connection(websocket) == True:
+                await self.handle_disconnection(websocket)
 
         finally:
-            # Remove client from list here?
             print(f"Cleaning up connection for {websocket.remote_address}")
+            # Remove client from list upon disconnection
+            if self.check_connection(websocket) == True:
+                await self.handle_disconnection(websocket)
 
     # Run server
     async def run(self):
