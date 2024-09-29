@@ -39,13 +39,14 @@ pip install pycryptodome
 ```
 
 ## Running the Client and Server
-To build and run the client, run the following commands:
+As the client is a Python file, no compilation is necessary, and it can be started directly.
 
 ```
-This section is a placeholder for future instructions.
+cd client
+python3 client.py
 ```
 
-As the server is a Python file, no compilation is necessary, and it can be started directly.
+The server can be started using the same process.
 
 ```
 cd server
