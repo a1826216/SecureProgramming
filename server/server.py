@@ -218,7 +218,7 @@ class Server:
 
     # Run server
     async def run(self):
-        async with websockets.serve(self.handle_connection, self.host, self.port):
+        async with websockets.serve(self.handle_connection, self.host, self.port, ping_interval=20, ping_timeout=100):
             print("Server running on", self.uri)
             await asyncio.get_running_loop().create_future()
 
