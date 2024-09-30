@@ -29,8 +29,11 @@ class Client:
         # Exported PEM of private key
         self.private_key = self.key_pair.export_key()
 
-        # List of all clients on all servers
-        self.client_list = {}
+        # List of clients on home server
+        self.clients = {}
+
+        # List of clients on other servers
+        self.neighbourhood_clients = {}
 
     # Helper function to generate signed data messages
     def generate_signed_data(self, data:dict):
@@ -71,9 +74,6 @@ class Client:
         # Send hello message
         await self.websocket.send(hello_msg)
 
-        # response = await self.websocket.recv()
-        # print(f"Received: ", response)
-
     # Helper function to generate and send a public chat message
     async def send_public_chat(self, message):
         # Get fingerprint of sender
@@ -100,16 +100,53 @@ class Client:
         message = {"type": "client_list_request"}
         await self.websocket.send(json.dumps(message))
 
+    # Handle client list
+    async def handle_client_list(self, message):
+        pass
+
+    # Print client list
+    async def print_client_list(self):
+        pass
+
+    # Handle signed data messages
+    async def handle_signed_data(self, message):
+        message_type = message["data"]["type"]
+
+        match message_type:
+            case "public_chat":
+                sender = message["data"]["sender"]
+                chat = message["data"]["message"]
+                print(f"From {sender} (public): {chat}")
+            case "chat":
+                print("regular chat")
+            case _:
+                print("Invalid message type sent to client")
+
+    # Handle chat sent by another client
+    async def handle_chat(self):
+        pass
+
     # Listen for messages
     async def listen(self):
         # Receive message
         async for message in self.websocket:
-            print(f"Received: {message}")
-
+            data = json.loads(message)
+            if "type" not in data.keys():
+                print(f"Received from server: {message}")
+            else:
+                await self.handle_messages(data)
 
     # Handle incoming messages
-    async def handle_messages(self):
-        pass
+    async def handle_messages(self, message):
+        message_type = message["type"]
+
+        match message_type:
+            case "signed_data":
+                await self.handle_signed_data(message)
+            case "client_list":
+                await self.handle_client_list(message)
+            case _:
+                print("Invalid message type received")
 
     async def run(self):
         self.websocket = await websockets.connect(self.uri)
