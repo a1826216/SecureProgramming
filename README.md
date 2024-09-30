@@ -64,6 +64,7 @@ Send a public chat message:
 ```
 > public
 Enter a message: <message>
+Sending public chat message...
 ```
 
 When a public chat message is received it will appear directly in the terminal:

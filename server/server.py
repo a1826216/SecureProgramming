@@ -3,6 +3,7 @@ import websockets
 import json
 import base64
 import hashlib
+import secrets
 
 from Crypto.Signature import pss
 from Crypto.PublicKey import RSA
@@ -49,6 +50,10 @@ class Server:
             return False
             
         return True
+    
+    # Function to validate signed data signatures
+    def validate_signature(self, signature, public_key):
+        pass
     
     # Helper function to return a client ID
     def get_client_id(self, public_key):

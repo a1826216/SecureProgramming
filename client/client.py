@@ -3,6 +3,7 @@ import websockets
 import json
 import base64
 import hashlib
+import secrets
 from aioconsole import ainput
 
 from Crypto.Signature import pss
@@ -93,10 +94,25 @@ class Client:
         public_chat_msg = self.generate_signed_data(data)
 
         # Send public chat message
+        print("Sending public chat message...")
         await self.websocket.send(public_chat_msg)
 
+    # Generate and send an encrypted chat message
     async def send_chat(self, message, recipients):
-        pass
+        # Split recipients list by space
+        client_list = recipients.split(" ")
+
+        # Chat message (to be encrypted using AES)
+        chat = {
+            "participants": [self.client_id] + client_list,
+            "message": message
+        }
+
+        # Generate 16-byte initialisation vector
+        iv = secrets.token_bytes(16)
+
+        
+
 
     # Send client list request
     async def client_list_request(self):
@@ -174,11 +190,12 @@ class Client:
                 print("Invalid message type received")
 
     async def run(self):
-        self.websocket = await websockets.connect(self.uri)
         print("Starting OLAF Neighbourhood client...")
+        print(f"Connecting to server at {self.uri}...")
+        self.websocket = await websockets.connect(self.uri)
 
         # Send hello message
-        print(f"Connecting to server at {self.uri}...")
+        print("Sending hello message...")
         await self.send_hello()
 
         # Listen for incoming messages
@@ -193,10 +210,13 @@ class Client:
 
             match prompt:
                 case "public":
-                    message = await ainput("Enter a message: ")
-                    await self.send_public_chat(message)
+                    public_message = await ainput("Enter a message: ")
+                    await self.send_public_chat(public_message)
                 case "chat":
-                    print("not implemented yet!")
+                    await self.client_list_request()
+                    client_id_list = await ainput("Enter list of Client ID's (separated by spaces): ")
+                    chat_message = await ainput("Enter a message: ")
+                    await self.send_chat(chat_message, client_id_list)
                 case "list":
                     await self.client_list_request()
                     self.print_client_list()
