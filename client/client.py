@@ -32,7 +32,7 @@ class Client:
         # Client's own client ID
         self.client_id = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
 
-        # List of clients on home server
+        # List of clients on home server (excluding this one)
         self.clients = {}
 
         # List of clients on other servers
@@ -63,6 +63,10 @@ class Client:
         self.counter += 1
 
         return json.dumps(signed_data)
+    
+    # Helper function to return client ID (for adding clients to server client list)
+    def get_client_id(self, public_key):
+        return SHA256.new(base64.b64encode(bytes(public_key, 'utf-8'))).hexdigest()
 
     # Helper function to generate and send a hello message
     async def send_hello(self):
@@ -91,7 +95,7 @@ class Client:
         # Send public chat message
         await self.websocket.send(public_chat_msg)
 
-    async def send_chat(self, message):
+    async def send_chat(self, message, recipients):
         pass
 
     # Send client list request
@@ -102,11 +106,32 @@ class Client:
 
     # Handle client list
     async def handle_client_list(self, message):
-        pass
+        # Create list of client IDs
+        temp_list = {}
+        
+        # Handle clients on all servers
+        for server in message["servers"]:
+            for public_key in server['clients']:
+                client_id = self.get_client_id(public_key)
+                    
+                # Add client if client ID is not this client
+                if client_id != self.client_id:
+                    temp_list[client_id] = {
+                        "home_server": server["address"], 
+                        "fingerprint": client_id,
+                        "public_key": public_key,
+                    }
+
+        # Replace client list
+        self.clients = temp_list
 
     # Print client list
-    async def print_client_list(self):
-        pass
+    def print_client_list(self):
+        # List clients on all servers
+        print("List of clients:")
+        for client in self.clients:
+            home_server = self.clients[client]["home_server"]
+            print(f"{client} ({home_server})")
 
     # Handle signed data messages
     async def handle_signed_data(self, message):
@@ -159,6 +184,9 @@ class Client:
         # Listen for incoming messages
         asyncio.ensure_future(self.listen())
 
+        # Get client list
+        await self.client_list_request()
+
         # Main loop
         while True:
             prompt = await ainput("> ")
@@ -171,6 +199,7 @@ class Client:
                     print("not implemented yet!")
                 case "list":
                     await self.client_list_request()
+                    self.print_client_list()
                 case "close":
                     print("Closing connection to server...")
                     if self.websocket:
