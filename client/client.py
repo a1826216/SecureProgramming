@@ -29,6 +29,9 @@ class Client:
         # Exported PEM of private key
         self.private_key = self.key_pair.export_key()
 
+        # Client's own client ID
+        self.client_id = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
+
         # List of clients on home server
         self.clients = {}
 
@@ -76,13 +79,10 @@ class Client:
 
     # Helper function to generate and send a public chat message
     async def send_public_chat(self, message):
-        # Get fingerprint of sender
-        fingerprint = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
-
         # Generate public chat message
         data = {
             "type": "public_chat",
-            "sender": fingerprint,
+            "sender": self.client_id,
             "message": message
         }
 
