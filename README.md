@@ -39,7 +39,17 @@ python3 server.py
 ```
 
 ## Using the Client
-When the client starts for the first time, it will immediately send a hello message to the server, and refresh the client list. 
+When the client starts for the first time, it will immediately send a hello message to the server, and refresh the client list.
+
+The client accepts the following commands:
+
+`list`: Lists all currently active clients
+
+`public`: Sends a public chat message
+
+`chat`: Sends an encrypted chat message
+
+`close`: Closes connection and exits the client
 
 ### Examples:
 List all currently online clients:
@@ -67,7 +77,7 @@ Send an encrypted chat message:
 Not implemented yet!
 ```
 
-Close connection to the server (this will exit the client):
+Close connection to the server:
 ```
 > close
 Closing connection to server...
