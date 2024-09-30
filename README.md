@@ -38,4 +38,38 @@ cd server
 python3 server.py
 ```
 
-(this section is very incomplete)
+## Using the Client
+When the client starts for the first time, it will immediately send a hello message to the server, and refresh the client list. 
+
+### Examples:
+List all currently online clients:
+```
+> list
+List of clients:
+9f7694c0f2b297bddedd6734b6df45509e6853bdd69eb8193e31685ab1146d1d (ws://localhost:8765)
+bcb0c86e8959879aff164a6a3f5b5a304cc7957bbab4cbd8926474ee8791e715 (ws://localhost:8765)
+```
+
+Send a public chat message:
+```
+> public
+Enter a message: <message>
+```
+
+When a public chat message is received it will appear directly in the terminal:
+```
+From 3bbea2cfb33c676350fe935a0dbca6c0e565cb49cf6d39772c3b1a54230818f1 (public): <message>
+```
+
+Send an encrypted chat message:
+```
+> chat
+Not implemented yet!
+```
+
+Close connection to the server (this will exit the client):
+```
+> close
+Closing connection to server...
+$
+```
