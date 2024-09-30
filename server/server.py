@@ -129,9 +129,15 @@ class Server:
 
     # Handle public chat (broadcast to clients in all neighbourhoods)
     async def handle_public_chat(self, websocket, message):
+        # Get fingerprint of sender
+        sender_fingerprint = message["data"]["sender"]
+
+        # Relay to all clients connected to server
         for client in self.clients:
-            if self.clients[client]["websocket"] != websocket:
-                await websocket.send(json.dumps(message))
+            if client != sender_fingerprint:
+                await self.clients[client]["websocket"].send(json.dumps(message))
+
+        # Relay to all neighbourhood clients
 
     # Handle private chat (route to individual recipients)
     async def handle_chat(self, websocket, message):

@@ -35,6 +35,7 @@ Python libraries can be installed using pip:
 
 ```
 pip install websockets
+pip install aioconsole
 pip install pycryptodome
 ```
 

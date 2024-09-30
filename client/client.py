@@ -3,6 +3,7 @@ import websockets
 import json
 import base64
 import hashlib
+from aioconsole import ainput
 
 from Crypto.Signature import pss
 from Crypto.PublicKey import RSA
@@ -57,7 +58,7 @@ class Client:
 
         return json.dumps(signed_data)
 
-    
+    # Helper function to generate and send a hello message
     async def send_hello(self):
         # Generate hello message
         data = {
@@ -70,13 +71,15 @@ class Client:
         # Send hello message
         await self.websocket.send(hello_msg)
 
-        response = await self.websocket.recv()
-        print(f"Received: ", response)
+        # response = await self.websocket.recv()
+        # print(f"Received: ", response)
 
+    # Helper function to generate and send a public chat message
     async def send_public_chat(self, message):
         # Get fingerprint of sender
         fingerprint = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
 
+        # Generate public chat message
         data = {
             "type": "public_chat",
             "sender": fingerprint,
@@ -85,11 +88,11 @@ class Client:
 
         public_chat_msg = self.generate_signed_data(data)
 
+        # Send public chat message
         await self.websocket.send(public_chat_msg)
 
     async def send_chat(self, message):
         pass
-
 
     # Send client list request
     async def client_list_request(self):
@@ -97,43 +100,55 @@ class Client:
         message = {"type": "client_list_request"}
         await self.websocket.send(json.dumps(message))
 
-        # Wait for response
-        response = await self.websocket.recv()
-        print(f"Received: ", response)
-
     # Listen for messages
     async def listen(self):
-        pass
+        # Receive message
+        async for message in self.websocket:
+            print(f"Received: {message}")
+
 
     # Handle incoming messages
     async def handle_messages(self):
         pass
 
-    # Run the client
     async def run(self):
-        async with websockets.connect(self.uri) as self.websocket:
-            print("Starting OLAF Neighbourhood client...")
+        self.websocket = await websockets.connect(self.uri)
+        print("Starting OLAF Neighbourhood client...")
 
-            # Send hello message
-            print(f"Connecting to server at {self.uri}...")
-            await self.send_hello()
+        # Send hello message
+        print(f"Connecting to server at {self.uri}...")
+        await self.send_hello()
 
-            # Main loop
-            while (1):
-                prompt = input("> ")
+        # Listen for incoming messages
+        asyncio.ensure_future(self.listen())
 
-                match prompt:
-                    case "public":
-                        message = input("Enter a message: ")
-                        await self.send_public_chat(message)
-                    case "chat":
-                        print("not implemented yet!")
-                    case "list":
-                        await self.client_list_request()
-                    case "close":
-                        print("Closing connection to server...")
+        # Main loop
+        while True:
+            prompt = await ainput("> ")
+
+            match prompt:
+                case "public":
+                    message = await ainput("Enter a message: ")
+                    await self.send_public_chat(message)
+                case "chat":
+                    print("not implemented yet!")
+                case "list":
+                    await self.client_list_request()
+                case "close":
+                    print("Closing connection to server...")
+                    if self.websocket:
                         await self.websocket.close()
-                        return
+                    return
+                case _:
+                    print("Valid commands are ('public', 'chat', 'list', 'close')")
+
+if __name__ == "__main__":
+    client = Client("ws://localhost:8765")
+
+    # Run client
+    asyncio.run(client.run())
+
+
 
     # # Basic tests for client functionality
     # async def tests(self):
@@ -153,9 +168,3 @@ class Client:
 
     #         # await websocket.close()
     #         return
-
-if __name__ == "__main__":
-    client = Client("ws://localhost:8765")
-
-    # Testing signed data
-    asyncio.run(client.run())
