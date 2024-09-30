@@ -98,6 +98,8 @@ class Client:
         response = await websocket.recv()
         print(f"Received: ", response)
 
+    # Listen for messages
+
     # Run the client
     async def run(self):
         async with websockets.connect(self.uri) as websocket:
