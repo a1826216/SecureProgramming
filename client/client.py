@@ -16,6 +16,9 @@ class Client:
         # Counter value (to be sent with signed data)
         self.counter = 0
 
+        # Websocket connection object
+        self.websocket = None
+
         # Generate 2048-bit RSA key pair
         self.key_pair = RSA.generate(2048)
 
@@ -55,7 +58,7 @@ class Client:
         return json.dumps(signed_data)
 
     
-    async def send_hello(self, websocket):
+    async def send_hello(self):
         # Generate hello message
         data = {
             "type": "hello", 
@@ -65,12 +68,12 @@ class Client:
         hello_msg = self.generate_signed_data(data)
 
         # Send hello message
-        await websocket.send(hello_msg)
+        await self.websocket.send(hello_msg)
 
-        response = await websocket.recv()
+        response = await self.websocket.recv()
         print(f"Received: ", response)
 
-    async def send_public_chat(self, websocket, message):
+    async def send_public_chat(self, message):
         # Get fingerprint of sender
         fingerprint = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
 
@@ -82,32 +85,38 @@ class Client:
 
         public_chat_msg = self.generate_signed_data(data)
 
-        await websocket.send(public_chat_msg)
+        await self.websocket.send(public_chat_msg)
 
-    async def send_chat(self, websocket, message):
+    async def send_chat(self, message):
         pass
 
 
     # Send client list request
-    async def client_list_request(self, websocket):
+    async def client_list_request(self):
         # Send message
         message = {"type": "client_list_request"}
-        await websocket.send(json.dumps(message))
+        await self.websocket.send(json.dumps(message))
 
         # Wait for response
-        response = await websocket.recv()
+        response = await self.websocket.recv()
         print(f"Received: ", response)
 
     # Listen for messages
+    async def listen(self):
+        pass
+
+    # Handle incoming messages
+    async def handle_messages(self):
+        pass
 
     # Run the client
     async def run(self):
-        async with websockets.connect(self.uri) as websocket:
+        async with websockets.connect(self.uri) as self.websocket:
             print("Starting OLAF Neighbourhood client...")
 
             # Send hello message
             print(f"Connecting to server at {self.uri}...")
-            await self.send_hello(websocket)
+            await self.send_hello()
 
             # Main loop
             while (1):
@@ -116,34 +125,34 @@ class Client:
                 match prompt:
                     case "public":
                         message = input("Enter a message: ")
-                        await self.send_public_chat(websocket, message)
+                        await self.send_public_chat(message)
                     case "chat":
                         print("not implemented yet!")
                     case "list":
-                        await self.client_list_request(websocket)
+                        await self.client_list_request()
                     case "close":
                         print("Closing connection to server...")
-                        await websocket.close()
+                        await self.websocket.close()
                         return
 
-    # Basic tests for client functionality
-    async def tests(self):
-        async with websockets.connect(self.uri) as websocket:
-            # Try to send a public chat before hello is sent
-            await self.send_public_chat(websocket, "public chat!")
+    # # Basic tests for client functionality
+    # async def tests(self):
+    #     async with websockets.connect(self.uri) as websocket:
+    #         # Try to send a public chat before hello is sent
+    #         await self.send_public_chat(websocket, "public chat!")
             
-            # Send hello and get client list
-            await self.send_hello(websocket)
-            await self.client_list_request(websocket)
+    #         # Send hello and get client list
+    #         await self.send_hello(websocket)
+    #         await self.client_list_request(websocket)
 
-            # Send a duplicate hello
-            await self.send_hello(websocket)
+    #         # Send a duplicate hello
+    #         await self.send_hello(websocket)
 
-            # Send a public chat
-            await self.send_public_chat(websocket, "public chat!")
+    #         # Send a public chat
+    #         await self.send_public_chat(websocket, "public chat!")
 
-            # await websocket.close()
-            return
+    #         # await websocket.close()
+    #         return
 
 if __name__ == "__main__":
     client = Client("ws://localhost:8765")
