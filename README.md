@@ -13,23 +13,7 @@ Phapada Thanachotiwit
 
 Henry Winter
 
-## Third-Party Libraries
-WebSocket++ (https://github.com/zaphoyd/websocketpp/tree/master)
-
-JSON (https://github.com/nlohmann/json)
-
-OpenSSL (https://github.com/openssl/openssl)
-
 ## Setup Instructions
-Install C++ libraries (for Ubuntu/WSL):
-
-```
-sudo apt update
-sudo apt install nlohmann-json3-dev 
-sudo apt install libwebsocketpp-dev
-```
-
-OpenSSL should already be installed on most systems.
 
 Python libraries can be installed using pip:
 
