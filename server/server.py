@@ -65,12 +65,12 @@ class Server:
         for client in self.clients:
             if self.clients[client]["websocket"] == websocket:
                 # print (f"Client {client} is connected!")
-                return True
+                return self.clients[client]
             
         # Check neighbourhood websockets (when server-server is added)
             
         # print("Client is not connected!")
-        return False
+        return None
     
     # Send hello message to other servers
     async def send_server_hello(self, websocket):
@@ -86,7 +86,7 @@ class Server:
         data_type = message["data"]["type"]
 
         # Check active websocket status
-        if self.check_connection(websocket) == False:
+        if self.check_connection(websocket) == None:
             if data_type == "hello":
                 await self.handle_hello(websocket, message)
             else:
@@ -218,13 +218,13 @@ class Server:
         except websockets.ConnectionClosed:
             print(f"Connection closed from: {websocket.remote_address}")
             # Remove client from list upon disconnection
-            if self.check_connection(websocket) == True:
+            if self.check_connection(websocket):
                 await self.handle_disconnection(websocket)
 
         finally:
             print(f"Cleaning up connection for {websocket.remote_address}")
             # Remove client from list upon disconnection
-            if self.check_connection(websocket) == True:
+            if self.check_connection(websocket):
                 await self.handle_disconnection(websocket)
 
     # Run server
