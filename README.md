@@ -13,28 +13,13 @@ Phapada Thanachotiwit
 
 Henry Winter
 
-## Third-Party Libraries
-WebSocket++ (https://github.com/zaphoyd/websocketpp/tree/master)
-
-JSON (https://github.com/nlohmann/json)
-
-OpenSSL (https://github.com/openssl/openssl)
-
 ## Setup Instructions
-Install C++ libraries (for Ubuntu/WSL):
-
-```
-sudo apt update
-sudo apt install nlohmann-json3-dev 
-sudo apt install libwebsocketpp-dev
-```
-
-OpenSSL should already be installed on most systems.
 
 Python libraries can be installed using pip:
 
 ```
 pip install websockets
+pip install aioconsole
 pip install pycryptodome
 ```
 
@@ -53,4 +38,49 @@ cd server
 python3 server.py
 ```
 
-(this section is very incomplete)
+## Using the Client
+When the client starts for the first time, it will immediately send a hello message to the server, and refresh the client list.
+
+The client accepts the following commands:
+
+`list`: Lists all currently active clients
+
+`public`: Sends a public chat message
+
+`chat`: Sends an encrypted chat message
+
+`close`: Closes connection and exits the client
+
+### Examples:
+List all currently online clients:
+```
+> list
+List of clients:
+9f7694c0f2b297bddedd6734b6df45509e6853bdd69eb8193e31685ab1146d1d (ws://localhost:8765)
+bcb0c86e8959879aff164a6a3f5b5a304cc7957bbab4cbd8926474ee8791e715 (ws://localhost:8765)
+```
+
+Send a public chat message:
+```
+> public
+Enter a message: <message>
+Sending public chat message...
+```
+
+When a public chat message is received it will appear directly in the terminal:
+```
+From 3bbea2cfb33c676350fe935a0dbca6c0e565cb49cf6d39772c3b1a54230818f1 (public): <message>
+```
+
+Send an encrypted chat message:
+```
+> chat
+Not implemented yet!
+```
+
+Close connection to the server:
+```
+> close
+Closing connection to server...
+$
+```

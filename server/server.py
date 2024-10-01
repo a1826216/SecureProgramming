@@ -3,6 +3,7 @@ import websockets
 import json
 import base64
 import hashlib
+import secrets
 
 from Crypto.Signature import pss
 from Crypto.PublicKey import RSA
@@ -50,6 +51,31 @@ class Server:
             
         return True
     
+    # Function to validate signed data signatures
+    def validate_signature(self, message, public_key):
+        data = json.dumps(message["data"])
+        counter = str(message["counter"])
+        signature = message["signature"]
+
+        public_key = RSA.import_key(public_key)
+        
+        data_c = bytes(data + counter, 'utf-8')
+
+        hash = SHA256.new(data_c)
+
+        signature = base64.b64decode(signature)
+
+        verifier = pss.new(public_key)
+
+        try:
+            verifier.verify(hash, signature)
+            print("Signature is authentic")
+            return True
+        except ValueError:
+            print("Signature is not authentic.")
+            return False
+        
+    
     # Helper function to return a client ID
     def get_client_id(self, public_key):
         return SHA256.new(base64.b64encode(bytes(public_key, 'utf-8'))).hexdigest()
@@ -60,12 +86,12 @@ class Server:
         for client in self.clients:
             if self.clients[client]["websocket"] == websocket:
                 # print (f"Client {client} is connected!")
-                return True
+                return self.clients[client]
             
         # Check neighbourhood websockets (when server-server is added)
             
         # print("Client is not connected!")
-        return False
+        return None
     
     # Send hello message to other servers
     async def send_server_hello(self, websocket):
@@ -80,19 +106,37 @@ class Server:
         
         data_type = message["data"]["type"]
 
+        # Get current client (this will allow counter and signature validation)
+        current_client = self.check_connection(websocket)
+
         # Check active websocket status
-        if self.check_connection(websocket) == False:
+        if current_client == None:
             if data_type == "hello":
                 await self.handle_hello(websocket, message)
             else:
                 await websocket.send(json.dumps({"status": "error", "message": "Hello message not sent yet"}))
         else:
-            if data_type == "public_chat":
-                await self.handle_public_chat(websocket, message)
-            elif data_type == "chat":
-                print("Data type is chat!")
+            # Get public key from client
+            public_key = current_client["public_key"]
+
+            # Get counter from client
+            counter = current_client["counter"]
+            
+            # Validate signature before proceeding
+            if self.validate_signature(message, public_key) == False:
+                await websocket.send(json.dumps({"status": "error", "message": "Message has invalid signature"}))
             else:
-                await websocket.send(json.dumps({"status": "error", "message": "Invalid message type for connected client"}))
+                # Validate counter
+                if message["counter"] <= counter:
+                    await websocket.send(json.dumps({"status": "error", "message": "Counter value is too low"}))
+                else:
+                    match data_type:
+                        case "public_chat":
+                            await self.handle_public_chat(websocket, message)
+                        case "chat":
+                            print("Data type is chat!")
+                        case _:
+                            await websocket.send(json.dumps({"status": "error", "message": "Invalid message type for connected client"}))
 
     
     # Handle new client hello message
@@ -101,6 +145,7 @@ class Server:
         public_key = message["data"]["public_key"]
 
         # Validate signature using new public key
+        self.validate_signature(message, public_key)
         
         # Generate unique client ID (SHA256 of base64 encoded RSA public key)
         client_id = self.get_client_id(public_key)
@@ -129,9 +174,15 @@ class Server:
 
     # Handle public chat (broadcast to clients in all neighbourhoods)
     async def handle_public_chat(self, websocket, message):
+        # Get fingerprint of sender
+        sender_fingerprint = message["data"]["sender"]
+
+        # Relay to all clients connected to server
         for client in self.clients:
-            if self.clients[client]["websocket"] != websocket:
-                await websocket.send(json.dumps(message))
+            if client != sender_fingerprint:
+                await self.clients[client]["websocket"].send(json.dumps(message))
+
+        # Relay to all neighbourhood clients
 
     # Handle private chat (route to individual recipients)
     async def handle_chat(self, websocket, message):
@@ -207,13 +258,13 @@ class Server:
         except websockets.ConnectionClosed:
             print(f"Connection closed from: {websocket.remote_address}")
             # Remove client from list upon disconnection
-            if self.check_connection(websocket) == True:
+            if self.check_connection(websocket):
                 await self.handle_disconnection(websocket)
 
         finally:
             print(f"Cleaning up connection for {websocket.remote_address}")
             # Remove client from list upon disconnection
-            if self.check_connection(websocket) == True:
+            if self.check_connection(websocket):
                 await self.handle_disconnection(websocket)
 
     # Run server

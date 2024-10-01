@@ -3,10 +3,13 @@ import websockets
 import json
 import base64
 import hashlib
+import secrets
+from aioconsole import ainput
 
 from Crypto.Signature import pss
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256
+from Crypto.Cipher import AES
 
 class Client:
     def __init__(self, uri):
@@ -15,6 +18,9 @@ class Client:
         
         # Counter value (to be sent with signed data)
         self.counter = 0
+
+        # Websocket connection object
+        self.websocket = None
 
         # Generate 2048-bit RSA key pair
         self.key_pair = RSA.generate(2048)
@@ -25,8 +31,14 @@ class Client:
         # Exported PEM of private key
         self.private_key = self.key_pair.export_key()
 
-        # List of all clients on all servers
-        self.client_list = {}
+        # Client's own client ID
+        self.client_id = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
+
+        # List of clients on home server (excluding this one)
+        self.clients = {}
+
+        # List of clients on other servers
+        self.neighbourhood_clients = {}
 
     # Helper function to generate signed data messages
     def generate_signed_data(self, data:dict):
@@ -53,9 +65,13 @@ class Client:
         self.counter += 1
 
         return json.dumps(signed_data)
-
     
-    async def send_hello(self, websocket):
+    # Helper function to return client ID (for adding clients to server client list)
+    def get_client_id(self, public_key):
+        return SHA256.new(base64.b64encode(bytes(public_key, 'utf-8'))).hexdigest()
+
+    # Helper function to generate and send a hello message
+    async def send_hello(self):
         # Generate hello message
         data = {
             "type": "hello", 
@@ -65,88 +81,192 @@ class Client:
         hello_msg = self.generate_signed_data(data)
 
         # Send hello message
-        await websocket.send(hello_msg)
+        await self.websocket.send(hello_msg)
 
-        response = await websocket.recv()
-        print(f"Received: ", response)
-
-    async def send_public_chat(self, websocket, message):
-        # Get fingerprint of sender
-        fingerprint = SHA256.new(base64.b64encode(bytes(self.public_key.decode('utf-8'), 'utf-8'))).hexdigest()
-
+    # Helper function to generate and send a public chat message
+    async def send_public_chat(self, message):
+        # Generate public chat message
         data = {
             "type": "public_chat",
-            "sender": fingerprint,
+            "sender": self.client_id,
             "message": message
         }
 
         public_chat_msg = self.generate_signed_data(data)
 
-        await websocket.send(public_chat_msg)
+        # Send public chat message
+        print("Sending public chat message...")
+        await self.websocket.send(public_chat_msg)
 
-    async def send_chat(self, websocket, message):
-        pass
+    # Generate and send an encrypted chat message
+    async def send_chat(self, message, recipients):
+        # Split recipients list by space
+        client_list = recipients.split(" ")
+
+        # Chat message (to be encrypted using AES)
+        chat = {
+            "participants": [self.client_id] + client_list,
+            "message": message
+        }
+
+        # Generate 16-byte key for AES
+        aes_key = secrets.token_bytes(16)
+
+        # Generate 16-byte initialisation vector
+        iv = secrets.token_bytes(16)
+
+        # Generate AES key (GCM mode)
+        aes = AES.new(aes_key, AES.MODE_GCM)
+        print(aes.hexdigest())
+
+        # List of symmetric encryption keys
+        symm_keys = []
+
+        # Get symmetric keys for each participant's public key
+        for client in client_list:
+            if client in self.clients:
+                # Get public key
+                public_key = self.clients[client]["public_key"]
+
 
 
     # Send client list request
-    async def client_list_request(self, websocket):
+    async def client_list_request(self):
         # Send message
         message = {"type": "client_list_request"}
-        await websocket.send(json.dumps(message))
+        await self.websocket.send(json.dumps(message))
 
-        # Wait for response
-        response = await websocket.recv()
-        print(f"Received: ", response)
+    # Handle client list
+    async def handle_client_list(self, message):
+        # Create list of client IDs
+        temp_list = {}
+        
+        # Handle clients on all servers
+        for server in message["servers"]:
+            for public_key in server['clients']:
+                client_id = self.get_client_id(public_key)
+                    
+                # Add client if client ID is not this client
+                if client_id != self.client_id:
+                    temp_list[client_id] = {
+                        "home_server": server["address"], 
+                        "fingerprint": client_id,
+                        "public_key": public_key,
+                    }
+
+        # Replace client list
+        self.clients = temp_list
+
+    # Print client list
+    def print_client_list(self):
+        # List clients on all servers
+        print("List of clients:")
+        for client in self.clients:
+            home_server = self.clients[client]["home_server"]
+            print(f"{client} ({home_server})")
+
+    # Handle signed data messages
+    async def handle_signed_data(self, message):
+        message_type = message["data"]["type"]
+
+        match message_type:
+            case "public_chat":
+                sender = message["data"]["sender"]
+                chat = message["data"]["message"]
+                print(f"From {sender} (public): {chat}")
+            case "chat":
+                print("regular chat")
+            case _:
+                print("Invalid message type sent to client")
+
+    # Handle chat sent by another client
+    async def handle_chat(self):
+        pass
 
     # Listen for messages
+    async def listen(self):
+        # Receive message
+        async for message in self.websocket:
+            data = json.loads(message)
+            if "type" not in data.keys():
+                print(f"Received from server: {message}")
+            else:
+                await self.handle_messages(data)
 
-    # Run the client
+    # Handle incoming messages
+    async def handle_messages(self, message):
+        message_type = message["type"]
+
+        match message_type:
+            case "signed_data":
+                await self.handle_signed_data(message)
+            case "client_list":
+                await self.handle_client_list(message)
+            case _:
+                print("Invalid message type received")
+
     async def run(self):
-        async with websockets.connect(self.uri) as websocket:
-            print("Starting OLAF Neighbourhood client...")
+        print("Starting OLAF Neighbourhood client...")
+        print(f"Connecting to server at {self.uri}...")
+        self.websocket = await websockets.connect(self.uri)
 
-            # Send hello message
-            print(f"Connecting to server at {self.uri}...")
-            await self.send_hello(websocket)
+        # Send hello message
+        print("Sending hello message...")
+        await self.send_hello()
 
-            # Main loop
-            while (1):
-                prompt = input("> ")
+        # Listen for incoming messages
+        asyncio.ensure_future(self.listen())
 
-                match prompt:
-                    case "public":
-                        message = input("Enter a message: ")
-                        await self.send_public_chat(websocket, message)
-                    case "chat":
-                        print("not implemented yet!")
-                    case "list":
-                        await self.client_list_request(websocket)
-                    case "close":
-                        print("Closing connection to server...")
-                        await websocket.close()
-                        return
+        # Get client list
+        await self.client_list_request()
 
-    # Basic tests for client functionality
-    async def tests(self):
-        async with websockets.connect(self.uri) as websocket:
-            # Try to send a public chat before hello is sent
-            await self.send_public_chat(websocket, "public chat!")
-            
-            # Send hello and get client list
-            await self.send_hello(websocket)
-            await self.client_list_request(websocket)
+        # Main loop
+        while True:
+            prompt = await ainput("> ")
 
-            # Send a duplicate hello
-            await self.send_hello(websocket)
-
-            # Send a public chat
-            await self.send_public_chat(websocket, "public chat!")
-
-            # await websocket.close()
-            return
+            match prompt:
+                case "public":
+                    public_message = await ainput("Enter a message: ")
+                    await self.send_public_chat(public_message)
+                case "chat":
+                    await self.client_list_request()
+                    client_id_list = await ainput("Enter list of Client ID's (separated by spaces): ")
+                    chat_message = await ainput("Enter a message: ")
+                    await self.send_chat(chat_message, client_id_list)
+                case "list":
+                    await self.client_list_request()
+                    self.print_client_list()
+                case "close":
+                    print("Closing connection to server...")
+                    if self.websocket:
+                        await self.websocket.close()
+                    return
+                case _:
+                    print("Valid commands are ('public', 'chat', 'list', 'close')")
 
 if __name__ == "__main__":
     client = Client("ws://localhost:8765")
 
-    # Testing signed data
+    # Run client
     asyncio.run(client.run())
+
+
+
+    # # Basic tests for client functionality
+    # async def tests(self):
+    #     async with websockets.connect(self.uri) as websocket:
+    #         # Try to send a public chat before hello is sent
+    #         await self.send_public_chat(websocket, "public chat!")
+            
+    #         # Send hello and get client list
+    #         await self.send_hello(websocket)
+    #         await self.client_list_request(websocket)
+
+    #         # Send a duplicate hello
+    #         await self.send_hello(websocket)
+
+    #         # Send a public chat
+    #         await self.send_public_chat(websocket, "public chat!")
+
+    #         # await websocket.close()
+    #         return
