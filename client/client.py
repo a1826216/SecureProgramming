@@ -9,6 +9,7 @@ from aioconsole import ainput
 from Crypto.Signature import pss
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256
+from Crypto.Cipher import AES
 
 class Client:
     def __init__(self, uri):
@@ -108,10 +109,25 @@ class Client:
             "message": message
         }
 
+        # Generate 16-byte key for AES
+        aes_key = secrets.token_bytes(16)
+
         # Generate 16-byte initialisation vector
         iv = secrets.token_bytes(16)
 
-        
+        # Generate AES key (GCM mode)
+        aes = AES.new(aes_key, AES.MODE_GCM)
+        print(aes.hexdigest())
+
+        # List of symmetric encryption keys
+        symm_keys = []
+
+        # Get symmetric keys for each participant's public key
+        for client in client_list:
+            if client in self.clients:
+                # Get public key
+                public_key = self.clients[client]["public_key"]
+
 
 
     # Send client list request
