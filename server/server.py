@@ -29,6 +29,9 @@ class Server:
         # List of clients in the neighbourhood (outside this server)
         self.neighbourhood_clients = {}
 
+        # Debug info
+        self.debug_log = []
+
     # Check if a message is a valid OLAF Neighbourhood protocol message
     def check_json_headers(self, message: dict):
         # List of valid keys for messages sent by client
@@ -75,6 +78,15 @@ class Server:
     # Helper function to return a client ID
     def get_client_id(self, public_key):
         return SHA256.new(base64.b64encode(bytes(public_key, 'utf-8'))).hexdigest()
+    
+    # Helper function to create a debug log
+    async def debug(self, message):
+        message = json.loads(message)
+        debug_log = {
+            "client_id": message["data"]["client_id"],
+            "key": base64.b64decode(message["data"]["public_key"])
+        }
+        self.debug_log.append(debug_log)
 
     # Check if a user has an active websocket connection
     def check_connection(self, websocket):
@@ -161,6 +173,8 @@ class Server:
         for client in self.clients:
             if client != sender_fingerprint:
                 await self.clients[client]["websocket"].send(json.dumps(message))
+            else:
+                await self.send_client_update_request(websocket)
 
     # Handle private chat (route to individual recipients)
     async def handle_chat(self, websocket, message):
@@ -184,6 +198,13 @@ class Server:
         }
         await websocket.send(json.dumps(client_list_req))
 
+    # Send server client update request
+    async def send_client_update_request(self, websocket):
+        client_update_req = {
+            "type": "client_update_request"
+        }
+        await websocket.send(json.dumps(client_update_req))
+
     # Handle when a client disconnects
     async def handle_disconnection(self, websocket):
         public_key = ""
@@ -204,14 +225,17 @@ class Server:
 
         try:
             async for message in websocket:
-                print(f"Received message: {message}")
                 data = json.loads(message)
                 message_type = data.get("type", "")
 
                 if message_type == "signed_data":
+                    print(f"Received message: {message}")
                     await self.handle_signed_data(websocket, data)
                 elif message_type == "client_list_request":
+                    print(f"Received message: {message}")
                     await self.handle_client_list_request(websocket)
+                elif message_type == "client_debug":
+                    await self.debug(message)
                 else:
                     print(f"Unknown message type received: {data}")
 
