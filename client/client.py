@@ -197,11 +197,6 @@ class Client:
             home_server = self.clients[client]["home_server"]
             print(f"{client} ({home_server})")
 
-    # Function for debug messages
-    async def debug(self, message):
-        client_info = {"client_id": self.client_id, "public_key": base64.b64encode(self.key_pair.export_key()).decode('utf-8'), "counter": self.counter}
-        await self.websocket.send(json.dumps({"type": "client_debug", "data": client_info}))
-
     # Handle signed data messages
     async def handle_signed_data(self, message):
         message_type = message["data"]["type"]
@@ -246,7 +241,7 @@ class Client:
             case "client_list":
                 await self.handle_client_list(message)
             case _:
-                await self.debug("Invalid message type received")
+                print("Invalid message type received")
 
     # Run the client
     async def run(self):
