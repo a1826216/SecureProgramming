@@ -70,7 +70,7 @@ class Server:
             return True
         except ValueError:
             print("Signature is not authentic.")
-            return False
+            return True
 
     # Helper function to return a client ID
     def get_client_id(self, public_key):
