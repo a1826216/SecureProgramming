@@ -4,6 +4,9 @@ An implementation of the OLAF Neighbourhood protocol as defined here:
 
 https://github.com/xvk-64/2024-secure-programming-protocol
 
+### Warning!
+This code is 'vulnerable'.
+
 ## Group Members
 Alanna Anna Shibu
 
