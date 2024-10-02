@@ -64,7 +64,8 @@ Send a public chat message:
 ```
 > public
 Enter a message: <message>
-Sending public chat message...
+Public chat message sent.
+>
 ```
 
 When a public chat message is received it will appear directly in the terminal:
@@ -72,10 +73,21 @@ When a public chat message is received it will appear directly in the terminal:
 From 3bbea2cfb33c676350fe935a0dbca6c0e565cb49cf6d39772c3b1a54230818f1 (public): <message>
 ```
 
-Send an encrypted chat message:
+Send an AES-encrypted private chat message:
 ```
 > chat
-Not implemented yet!
+chat
+List of clients:
+f0d7c59370dc414b1c131419980ad30056665787631887f6bc739e7e3985a11f (ws://localhost:8765)
+Enter recipient Client ID: f0d7c59370dc414b1c131419980ad30056665787631887f6bc739e7e3985a11f
+Enter a message: <message>
+Encrypted chat message sent.
+> 
+```
+
+Like public chats, private chats will also appear directly in the terminal:
+```
+From f0d7c59370dc414b1c131419980ad30056665787631887f6bc739e7e3985a11f (private): <message>
 ```
 
 Close connection to the server:
