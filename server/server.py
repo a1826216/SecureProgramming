@@ -4,6 +4,7 @@ import json
 import base64
 import hashlib
 import secrets
+import sys
 
 from Crypto.Signature import pss
 from Crypto.PublicKey import RSA
@@ -233,5 +234,12 @@ class Server:
 
 
 if __name__ == "__main__":
-    server = Server("localhost", 8765)
+    # Default port (if no port is specified)
+    port = 8765
+
+    # Get port from command line
+    if len(sys.argv) > 1:
+        port = sys.argv[1]
+
+    server = Server("localhost", port)
     asyncio.run(server.run())

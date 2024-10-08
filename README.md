@@ -38,6 +38,11 @@ cd server
 python3 server.py
 ```
 
+If a port number is specified, the server will use the provided port instead of the default websocket port (8765).
+```
+python3 server.py <port>
+```
+
 ## Using the Client
 When the client starts for the first time, it will immediately send a hello message to the server, and refresh the client list.
 

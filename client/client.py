@@ -283,5 +283,10 @@ class Client:
                     print("Valid commands are ('public', 'chat', 'list', 'close')")
 
 if __name__ == "__main__":
-    client = Client("ws://localhost:8765")
+    # Get host and port from user input
+    hostname = input("Enter address (host:port) of server to connect to: ")
+    uri = "ws://" + hostname
+    
+    # Connect to server
+    client = Client(uri)
     asyncio.run(client.run())
