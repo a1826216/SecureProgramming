@@ -6,10 +6,8 @@ import hashlib
 import secrets
 from aioconsole import ainput
 
-from Crypto.Signature import pss
-from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA256
-from Crypto.Cipher import AES, PKCS1_OAEP
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 
 class Client:
     def __init__(self, uri):
@@ -22,11 +20,21 @@ class Client:
         # Websocket connection object
         self.websocket = None
 
-        # Generate 2048-bit RSA key pair
-        self.key_pair = RSA.generate(2048)
+        # 2048-bit RSA key pair
+        self.private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        
+        self.private_key_pem = self.private_key.private_bytes(
+            encoding=serialization.Encoding.PEM, 
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+            )
 
-        # Exported PEM of public key
-        self.public_key = self.key_pair.public_key().export_key().decode('utf-8')
+        self.public_key_pem = self.private_keyprivate_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+        
+        print(self.public_key_pem)
 
         # Client's own client ID (SHA256 of base64 encoded public key)
         self.client_id = hashlib.sha256(base64.b64encode(self.public_key.encode('utf-8'))).hexdigest()
