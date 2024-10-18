@@ -1,0 +1,34 @@
+Backdoors/Vulnerabilities
+
+Backdoor 1-Invalid signature validation in validate_signature function:
+This vulnerability is in the validate_signature function in the server.py file. Normally, this function should validate the signature attached to a message to ensure it was generated using the correct private key. However, due to the backdoor, this function always returns True, even when the signature is invalid. This allows an attacker to modify messages or impersonate other users without detection, enabling man-in-the-middle attacks or message forgery.
+
+Backdoor 2-Man-in-the-middle attack through identity spoofing: 
+The first vulnerability enables multiple others. It allows an attacker to spoof the identity of another user by intercepting and modifying messages between clients in the public chat. Because the signature validation is bypassed, an attacker can alter the contents of a message, while making it appear as if it came from a different user. This backdoor compromises the integrity of the communication, enabling identity theft and unauthorized message alteration. 
+
+Backdoor 3- Similarly, the attacker can intercept private chat messages, enabling them to impersonate users and tamper with private chat communications.
+
+*Method to exploit the backdoors*
+
+Public chat backdoor exploit
+
+1. Intercept communication between two clients. This can be done through network tools such as wireshark as learned in the cybersecurity fundamentals course, which would allow the attacker to capture WebSocket traffic.
+2. Once the message is intercepted, the attacker can modify its content- (using a tool like BurpSuite) either the sender or the message text. In a normal system, this would invalidate the signature, but due to the backdoor the server will still accept the modified message and deem it as valid.
+Example of modified message in json:
+{
+    "type": "public_chat",
+    "data": {
+        "sender": "attacker_id",
+        "message": "This is a malicious message muhaha"
+    },
+    "counter": 10,
+    "signature": "InvalidSignature"
+}
+3. When this modified message is forwarded to the server, the server calls the validate_signature function, which always returns True, allowing the forged message to be processed as if it were legitimate.
+4. This would lead users on the network to believe that someone else sent the malicious message that was actually sent by the attacker.
+
+Private chat backdoor exploit
+
+1. The attacker intercepts a private chat message that contains an AES-encrypted message and an RSA-encrypted key.
+2. Since the attacker does not have access to the private key of either party, they cannot decrypt the message. However, they can modify the message or even manipulate the sender's identity.
+3. When the forged message is sent the server, the server accepts it without verifying its signature, allowing the attacker to modify messages/impersonate clients.
