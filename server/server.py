@@ -3,12 +3,18 @@ import websockets
 import json
 import base64
 import hashlib
-import secrets
 import sys
 
-from Crypto.Signature import pss
-from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA256
+# from Crypto.Signature import pss
+# from Crypto.PublicKey import RSA
+# from Crypto.Hash import SHA256
+
+import cryptography.exceptions
+
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
 
 # Server class
 class Server:
@@ -53,29 +59,37 @@ class Server:
         return True
 
     # Function to validate signed data signatures
-    def validate_signature(self, message, public_key):
+    def validate_signature(self, message, public_key:bytes):
         data = json.dumps(message["data"])
         counter = str(message["counter"])
         signature = message["signature"]
 
-        public_key = RSA.import_key(public_key)
+        public_key = serialization.load_pem_public_key(public_key)
         data_c = bytes(data + counter, 'utf-8')
-        hash_value = SHA256.new(data_c)
 
         signature = base64.b64decode(signature)
-        verifier = pss.new(public_key)
 
         try:
-            verifier.verify(hash_value, signature)
-            print("Signature is authentic")
+            public_key.verify(
+                signature,
+                data_c,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ), 
+                hashes.SHA256()
+                )
+            print("Signature is authentic.")
             return True
-        except ValueError:
+
+        except cryptography.exceptions.InvalidSignature:
             print("Signature is not authentic.")
             return False
 
+
     # Helper function to return a client ID
-    def get_client_id(self, public_key):
-        return SHA256.new(base64.b64encode(bytes(public_key, 'utf-8'))).hexdigest()
+    def get_client_id(self, public_key:bytes):
+        return hashlib.sha256(base64.b64encode(public_key)).hexdigest()
 
     # Check if a user has an active websocket connection
     def check_connection(self, websocket):
@@ -124,6 +138,9 @@ class Server:
     async def handle_hello(self, websocket, message):
         public_key = message["data"]["public_key"]
 
+        # Convert public key to bytes format
+        public_key = bytes(public_key, 'utf-8')
+
         # Validate signature using new public key
         if not self.validate_signature(message, public_key):
             await websocket.send(json.dumps({"status": "error", "message": "Invalid signature for hello message"}))
@@ -148,8 +165,8 @@ class Server:
             'counter': counter         # Store most recent counter value (used to prevent replay attacks)
         }
 
-        # Append raw public key to client list
-        self.client_list["clients"].append(public_key)
+        # Append string version of public key to client list
+        self.client_list["clients"].append(public_key.decode('utf-8'))
 
         # Respond to the client to confirm receipt of the 'hello'
         await websocket.send(json.dumps({"status": "success", "message": "Hello successfully received", "client_id": str(client_id)}))

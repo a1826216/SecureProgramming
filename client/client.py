@@ -8,6 +8,8 @@ from aioconsole import ainput
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
 
 class Client:
     def __init__(self, uri):
@@ -23,13 +25,15 @@ class Client:
         # 2048-bit RSA key pair
         self.private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         
+        # Private key (unencrypted for now)
         self.private_key_pem = self.private_key.private_bytes(
             encoding=serialization.Encoding.PEM, 
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption()
             )
-
-        self.public_key_pem = self.private_keyprivate_key.public_key().public_bytes(
+        
+        # Public key
+        self.public_key_pem = self.private_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
@@ -37,7 +41,8 @@ class Client:
         print(self.public_key_pem)
 
         # Client's own client ID (SHA256 of base64 encoded public key)
-        self.client_id = hashlib.sha256(base64.b64encode(self.public_key.encode('utf-8'))).hexdigest()
+        self.client_id = hashlib.sha256(base64.b64encode(self.public_key_pem)).hexdigest()
+        print(self.client_id)
 
         # List of clients on home server (excluding this one)
         self.clients = {}
@@ -48,10 +53,17 @@ class Client:
         data_c = bytes(json.dumps(data) + str(self.counter), 'utf-8')
 
         # Get SHA256 sum of data and counter
-        hash_value = SHA256.new(data_c)
+        # hash_value = hashlib.sha256(data_c)
 
         # Sign the hash using the RSA private key
-        signature = pss.new(self.key_pair).sign(hash_value)
+        signature = self.private_key.sign(
+            data_c, 
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ), 
+            hashes.SHA256()
+            )
 
         # Base64 encode the signature
         signature_b64 = base64.b64encode(signature).decode('utf-8')
@@ -71,8 +83,9 @@ class Client:
 
     # Helper function to generate and send a hello message
     async def send_hello(self):
+        print("Sending hello message to server...")
         # Create hello message with the client's public key
-        data = {"type": "hello", "public_key": self.public_key}
+        data = {"type": "hello", "public_key": self.public_key_pem.decode('utf-8')}
 
         # Generate signed data for the hello message
         hello_msg = self.generate_signed_data(data)
