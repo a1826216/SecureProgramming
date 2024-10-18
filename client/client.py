@@ -11,6 +11,10 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
+# VULNERABLE MODULES
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
+
 class Client:
     def __init__(self, uri):
         # Address of server to connect to
@@ -37,12 +41,9 @@ class Client:
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
-        
-        print(self.public_key_pem)
 
         # Client's own client ID (SHA256 of base64 encoded public key)
         self.client_id = hashlib.sha256(base64.b64encode(self.public_key_pem)).hexdigest()
-        print(self.client_id)
 
         # List of clients on home server (excluding this one)
         self.clients = {}
@@ -51,9 +52,6 @@ class Client:
     def generate_signed_data(self, data):
         # Concatenate data and counter (this will form the signature)
         data_c = bytes(json.dumps(data) + str(self.counter), 'utf-8')
-
-        # Get SHA256 sum of data and counter
-        # hash_value = hashlib.sha256(data_c)
 
         # Sign the hash using the RSA private key
         signature = self.private_key.sign(
@@ -137,7 +135,7 @@ class Client:
         encrypted_aes_key_bytes = base64.b64decode(encrypted_aes_key)
 
         # Decrypt the AES key using the client's private RSA key
-        cipher_rsa = PKCS1_OAEP.new(self.key_pair)
+        cipher_rsa = PKCS1_OAEP.new(self.private_key)
         aes_key = cipher_rsa.decrypt(encrypted_aes_key_bytes)
 
         return aes_key

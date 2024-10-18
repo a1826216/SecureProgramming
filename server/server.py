@@ -5,10 +5,6 @@ import base64
 import hashlib
 import sys
 
-# from Crypto.Signature import pss
-# from Crypto.PublicKey import RSA
-# from Crypto.Hash import SHA256
-
 import cryptography.exceptions
 
 from cryptography.hazmat.primitives.asymmetric import rsa
