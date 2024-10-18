@@ -134,8 +134,10 @@ class Client:
     def decrypt_aes_key(self, encrypted_aes_key):
         encrypted_aes_key_bytes = base64.b64decode(encrypted_aes_key)
 
+        pc_private_key = RSA.import_key(self.private_key_pem)
+
         # Decrypt the AES key using the client's private RSA key
-        cipher_rsa = PKCS1_OAEP.new(self.private_key)
+        cipher_rsa = PKCS1_OAEP.new(pc_private_key)
         aes_key = cipher_rsa.decrypt(encrypted_aes_key_bytes)
 
         return aes_key
