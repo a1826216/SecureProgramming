@@ -6,9 +6,13 @@ import hashlib
 import secrets
 from aioconsole import ainput
 
-from Crypto.Signature import pss
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+
+# VULNERABLE MODULES
 from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA256
 from Crypto.Cipher import AES, PKCS1_OAEP
 
 class Client:
@@ -22,14 +26,24 @@ class Client:
         # Websocket connection object
         self.websocket = None
 
-        # Generate 2048-bit RSA key pair
-        self.key_pair = RSA.generate(2048)
-
-        # Exported PEM of public key
-        self.public_key = self.key_pair.public_key().export_key().decode('utf-8')
+        # 2048-bit RSA key pair
+        self.private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        
+        # Private key (unencrypted for now)
+        self.private_key_pem = self.private_key.private_bytes(
+            encoding=serialization.Encoding.PEM, 
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+            )
+        
+        # Public key
+        self.public_key_pem = self.private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
 
         # Client's own client ID (SHA256 of base64 encoded public key)
-        self.client_id = hashlib.sha256(base64.b64encode(self.public_key.encode('utf-8'))).hexdigest()
+        self.client_id = hashlib.sha256(base64.b64encode(self.public_key_pem)).hexdigest()
 
         # List of clients on home server (excluding this one)
         self.clients = {}
@@ -39,11 +53,15 @@ class Client:
         # Concatenate data and counter (this will form the signature)
         data_c = bytes(json.dumps(data) + str(self.counter), 'utf-8')
 
-        # Get SHA256 sum of data and counter
-        hash_value = SHA256.new(data_c)
-
         # Sign the hash using the RSA private key
-        signature = pss.new(self.key_pair).sign(hash_value)
+        signature = self.private_key.sign(
+            data_c, 
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ), 
+            hashes.SHA256()
+            )
 
         # Base64 encode the signature
         signature_b64 = base64.b64encode(signature).decode('utf-8')
@@ -63,8 +81,9 @@ class Client:
 
     # Helper function to generate and send a hello message
     async def send_hello(self):
+        print("Sending hello message to server...")
         # Create hello message with the client's public key
-        data = {"type": "hello", "public_key": self.public_key}
+        data = {"type": "hello", "public_key": self.public_key_pem.decode('utf-8')}
 
         # Generate signed data for the hello message
         hello_msg = self.generate_signed_data(data)
@@ -115,8 +134,10 @@ class Client:
     def decrypt_aes_key(self, encrypted_aes_key):
         encrypted_aes_key_bytes = base64.b64decode(encrypted_aes_key)
 
+        pc_private_key = RSA.import_key(self.private_key_pem)
+
         # Decrypt the AES key using the client's private RSA key
-        cipher_rsa = PKCS1_OAEP.new(self.key_pair)
+        cipher_rsa = PKCS1_OAEP.new(pc_private_key)
         aes_key = cipher_rsa.decrypt(encrypted_aes_key_bytes)
 
         return aes_key
